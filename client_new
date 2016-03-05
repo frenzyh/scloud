@@ -1,0 +1,150 @@
+#/usr/bin/env python
+# encoding=utf-8
+
+from enc_and_dec import enc_tools
+from cloud import vdisk
+
+from socket import *
+import getpass
+import os
+import optparse
+import sys
+
+class Scloud_client(object):
+
+    def __init__(self, ip, port):
+        self.ip = ip
+        self.port = port
+        self.s = socket(AF_INET, SOCK_STREAM)
+        self.s.connect((self.ip, self.port))
+
+    def help(self):
+        print "[*] The options you can use are('back' can be used to swicth option):"
+        print "[*] help, exit, register, login, upload, download, share"
+
+    def exit(self):
+        print "[*] See you later"
+        self.s.close()
+        sys.exit(0)
+
+    def register(self):
+        print self.s.recv(4096),
+        register_username = raw_input("")
+        self.s.send(register_username)
+        print self.s.recv(4096),
+        register_password = getpass.getpass("")
+        self.s.send(register_password)
+        print self.s.recv(4096),
+        register_confirm = getpass.getpass("")
+        self.s.send(register_confirm)
+        print self.s.recv(4096) # register succeessfully or not
+
+    def login(self):
+        print self.s.recv(4096),
+        login_username = raw_input("")
+        self.s.send(login_username)
+        print self.s.recv(4096),
+        login_password = getpass.getpass("")
+        self.s.send(login_password)
+        print self.s.recv(4096) # login successfully or not
+
+    def upload(self):
+        login_or_not = self.s.recv(4096) # login or not
+        if "Welcome" not in login_or_not:
+            print login_or_not
+            return 0
+        else:
+            user_token = self.s.recv(4096)
+            if user_token:
+                print "[*] Server is ready"
+            else:
+                print "[*] Something error in server"
+                return 0
+            upl_or_sha = raw_input("[*] The file to upload or share(u/s)")
+            if upl_or_sha == "u":
+                self.s.send("upload")
+            if upl_or_sha == "s":
+                self.s.send("share")
+            file_to_upload = raw_input("[*] Please choose the file to upload or share")
+            file_name = os.path.basename(file_to_upload)
+            self.s.send(file_name)
+            file_hash = enc_tools.get_sha256(enc_tools.get_data(file_to_upload))
+            self.s.send(file_hash)
+            user_key = self.s.recv(4096)
+            enc_tools.enc_data(file_to_upload, user_key, './tmp/'+file_name)
+            f = open('./tmp/'+file_name, 'rb')
+            vdisk_client = vdisk.Client()
+            data = vdisk_client.files_put(access_token=user_token, path='', content=f)
+            if data:
+                self.s.send("[*] Upload file successfully")
+                print "[*] Upload file successfully"
+                os.remove('./tmp/'+file_name)
+            f.close()
+
+    def show(self):
+        show_or_not = self.s.recv(4096)
+        print show_or_not
+
+    def download(self):
+        login_or_not = self.s.recv(4096)
+        if "Welcome" not in login_or_not:
+            print login_or_not
+            return 0
+        else:
+            print "[*] The file you can download:"
+            print self.s.recv(4096)
+            pri_or_pub = raw_input("[*] Download private or share file?(p/s)")
+            file_choosed = raw_input("[*] The file choose to download:")
+            download_file_path = './download'+file_choosed
+            self.s.send(file_choosed)
+            file_hash = self.s.recv(4096)
+            user_token = self.s.recv(4096)
+            #print user_token
+            if user_token:
+                print "[*] Server is ready"
+            else:
+                print "[*] Something error in server"
+                return 0
+            with open(file_choosed, 'w') as f:
+                vdisk_client = vdisk.Client()
+                f.write(vdisk_client.files(user_token, file_choosed))
+            if pri_or_pub == "p":
+                user_key = getpass.getpass("[*] The key to file:")
+                key_tmp = enc_tools.sha256_xor(enc_tools.get_sha256(user_key), file_hash)
+                key = enc_tools.hex_to_ascii_str(key_tmp).encode('hex')
+                enc_tools.dec_data(file_choosed, key, download_file_path)
+            if pri_or_pub == "s":
+                key = file_hash
+                enc_tools.dec_data(file_choosed, key, download_file_path)
+            os.remove(file_choosed)
+            print "[*] Download successfully"
+
+    def run(self):
+        print "[*] Welcome to Scloud_client\n[*] Please login or register first"
+        self.help()
+        func_list = ["help", "exit", "register", "login", "upload", "download", "share"]
+        try:
+            while True:
+                client_command = raw_input("Scloud> ").strip()
+                if client_command in func_list:
+                    self.s.send(client_command)
+                    getattr(c, client_command)()
+        except Exception, e:
+            self.s.close()
+            print "[!] There is something wrong", e
+
+
+if __name__ == '__main__':
+    parser = optparse.OptionParser("usage: %prog [options]")
+    parser.add_option("-s", "--server", dest="serer_address", type="string", default="localhost", help="the server's ip address")
+    parser.add_option("-p", "--port", dest="port_number", type="int", default=5555, help="the port number of server")
+
+    (options, args) = parser.parse_args()
+    
+    if len(args) > 1:
+        parser.print_help()
+        sys.exit(0)
+
+    c = Scloud_client(options.serer_address, options.port_number)
+
+    c.run()
