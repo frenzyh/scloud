@@ -1,0 +1,90 @@
+'''
+Assume Input is the path of the data to enc and the key
+'''
+
+from Crypto.Cipher import AES
+from Crypto.Hash import SHA256
+from Crypto import Random
+import re
+
+
+class enc_and_dec(object):
+    def __init__(self):
+        pass
+
+    def get_data(self, Data_Path):
+        Data_Path = Data_Path.encode('string-escape')
+        local_file = open(Data_Path, 'r')
+        local_data = local_file.read()
+        return local_data    
+    
+
+    def get_sha256(self, Data_to_enc):
+        hash = SHA256.new()
+        hash.update(Data_to_enc)
+        return hash.hexdigest()    
+    
+
+    def sha256_xor(self, Sha256_data_1, Sha256_data_2):
+        result = ''
+        list_1 = re.findall(r'.{2}', Sha256_data_1)
+        list_2 = re.findall(r'.{2}', Sha256_data_2)
+        for (x, y) in zip(list_1, list_2):
+            hex_byte = hex(int(x, 16) ^ int(y, 16))[2:]
+            if len(hex_byte) % 2:
+                hex_byte += '0'
+                hex_byte = hex_byte[::-1]
+            result += hex_byte
+        return result    
+    
+
+    def hex_to_ascii_str(self, hexstr):
+        result_str = ''
+        hex_data = re.findall(r'.{2}', hexstr)
+        for hex in hex_data:
+            result_str += chr(int(hex, 16))
+        return result_str    
+    
+
+    def generate_store_path(self, File_path):
+        store_path = ''
+        File_path = File_path.encode('string-escape')
+        for x in File_path.split('\\')[:len(File_path.split('\\')) - 1]:
+            store_path += x + '\\'
+        return store_path + 'enc_' + File_path.split('\\')[-1]    
+    
+
+    def generate_enc_aes_file(self, Data_to_enc, Enc_key, Store_path):
+        Store_path = Store_path.encode('string-escape')
+        iv = Random.new().read(AES.block_size)
+        aes = AES.new(Enc_key, AES.MODE_CFB, iv)
+        enc_data = iv + aes.encrypt(Data_to_enc)
+        enc_file = open(Store_path, 'w')
+        enc_file.write(enc_data)
+        enc_file.close()    
+    
+    def generate_dec_aes_file(self, Data_to_dec, Dec_key, iv, File_path):
+        Store_path = File_path.encode('string-escape')
+        aes = AES.new(Dec_key.decode('hex'), AES.MODE_CFB, iv)
+        dec_data = aes.decrypt(Data_to_dec)
+        with open(Store_path, 'wb') as dec_file:
+            dec_file.write(dec_data)
+
+    def enc_data(self, tmp_path, user_key, store_path):
+        data_to_enc = self.get_data(tmp_path)
+        data_sha256 = self.get_sha256(data_to_enc)
+        key_sha256 = user_key
+        enc_key_hex = self.sha256_xor(data_sha256, key_sha256)
+        enc_key = self.hex_to_ascii_str(enc_key_hex)
+        self.generate_enc_aes_file(data_to_enc, enc_key, store_path)
+
+    def dec_data(self, Path, key, store_path):
+        data_with_iv = self.get_data(Path)
+        iv, data_to_dec = data_with_iv[:16], data_with_iv[16:]
+        store_path = self.generate_store_path(Path)
+        self.generate_dec_aes_file(data_to_dec, key, iv, store_path)
+
+try:
+    enc_tools = enc_and_dec()
+except:
+    print "[!] Something error in enc"
