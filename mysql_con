@@ -1,0 +1,50 @@
+#coding:utf8
+import MySQLdb
+
+class DB_Hander:
+	def __init__(self,dbname,host,port,user,pwd):
+		self.dbname = dbname
+		self.host = host
+		self.port = port
+		self.user = user
+		self.pwd = pwd
+
+	def __get_connect(self):
+		if not self.dbname:
+			raise(NameError,"[!] Not config mysql information")
+		self.conn = MySQLdb.connect(\
+			db = self.dbname,\
+			host = self.host,\
+			port = self.port,\
+			user = self.user,\
+			passwd = self.pwd,\
+			charset="utf8")
+		cur = self.conn.cursor()
+		if not cur:
+			raise(NameError,"[!] Connect to mysql fails")
+		else:
+			return cur
+
+	def exec_query(self,sql):
+		cur = self.__get_connect()
+		cur.execute(sql)
+                self.conn.commit()
+		resList = cur.fetchall()
+		self.conn.close()
+		return resList
+
+	def exec_non_query(self,sql):
+		cur = self.__get_connect()
+		cur.execute(sql)
+		self.conn.commit()
+		self.conn.close()
+
+try:
+	db_hander = DB_Hander(\
+		dbname = 'cipher',\
+		host = 'localhost',\
+		port = 3306,\
+		user = 'root',\
+		pwd = '')
+except:
+	print '[!] Connection error'
