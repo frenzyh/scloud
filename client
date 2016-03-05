@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+#encoding=utf-8
+
+from socket import *
+import os.path
+import sys
+
+ip = 'localhost'
+port = 5555
+s = socket(AF_INET, SOCK_STREAM)
+
+def user_upload():
+    filename = raw_input("[*]File to upload:")
+    f = open(filename, 'rb')
+    while True:
+        data = f.read(4096)
+        if not data:
+            break
+        s.sendall(data)
+    f.close()
+    time.sleep(1)
+    s.sendall('EOF')
+    print "[*]Send file successfully"
+
+def upload(s, client_command):
+    s.send(client_command)
+    told = s.recv(4096)
+    print told,
+    file_path = raw_input()
+    file_name = os.path.basename(file_path)
+    s.send(file_nmae)
+    ready_or_not = s.recv(4096)
+    print ready_or_not
+    f = open(file_path, 'rb')
+    while True:
+        data = f.read(4096)
+        if not data:
+            break
+        s.sendall(data)
+    f.close()
+    time.sleep(1)
+    s.sendall('EOF')
+    print "[*] Send file successfully"
+
+try:
+    s.connect((ip, port))
+    while True:
+        client_command = raw_input("Scloud> ")
+        if not client_command:
+            continue
+        if client_command == "upload":
+            upload(s, client_command)
+        else:
+            s.send(client_command)
+            while True:
+                told = s.recv(4096)
+                print told,
+                if "successfully" in told:
+                    break
+                data = raw_input()
+                if data == "back":
+                    break
+                else:
+                    s.send(data)
+except error, e:
+    print "[!]Get error as", e
+finally:
+    s.close()
