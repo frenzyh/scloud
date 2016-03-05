@@ -1,0 +1,122 @@
+#!/usr/bin/env python
+#encoding=utf-8
+
+import SocketServer
+
+from mysqlcon import db_hander
+from enc_and_dec import enc_tools
+
+import sys
+reload(sys)
+sys.setdefaultencoding("utf-8")
+
+class MyTcpServer(SocketServer.BaseRequestHandler):
+
+    def handle(self):
+        self.session = False
+        print "[+] Get connection from: ", self.client_address
+        while True:
+            try:
+                data = self.request.recv(4096)
+                print "[+] Get data: ", data
+                if not data:
+                    print "[+] Break the connection!"
+                    break
+                else:
+                    action = data.strip()
+                    if action == "register":
+                        while True:
+                            register_succed = self.user_register()
+                            if register_succed == True: break
+                    elif action == "login":
+                        while True:
+                            self.session = self.user_login()
+                            if self.session != False:
+                                print self.session
+                                break
+                    elif action == "key":
+                        self.user_key()
+                    elif action == "upload":
+                        self.user_upload()
+                    elif action == "download":
+                        self.user_download()
+                    elif action == "share":
+                        self.user_share()
+                    elif action == "exit":
+                        self.user_exit()
+                    else:
+                        print "[+] Doing nothing!"
+            except Exception, e:
+                print "[+]Get Error: " ,e   
+
+    def user_register(self):
+        self.request.send("[*] Welcome to register\n[*] Your username:")
+        username = self.request.recv(4096).strip()
+        self.request.send("[*] Your password:")
+        password = self.request.recv(4096).strip()
+        self.request.send("[*] Your confirm:")
+        confirm = self.request.recv(4069).strip()
+        if password != confirm:
+            self.request.send("[!] The password is different with confirm\n[!] Please try again\n")
+            return False
+        else:
+            user_key = skeleton.get_sha256(password)
+            sql = "INSERT INTO login (username, user_key) VALUES ("+repr(username)+', '+repr(user_key)+')'
+            mysqlcon.dbh.ExecQuery(sql)
+            self.request.send("[!] Register successfully\n")
+            return True
+
+    def user_login(self):
+        self.request.send("[*] Welcom to login\n[*] Your username:")
+        username = self.request.recv(4096).strip()
+        self.request.send("[*] Your password:")
+        password = self.request.recv(4096).strip()
+        user_key = skeleton.get_sha256(password)
+        sql = "SELECT * FROM login where username="+repr(username)+" and user_key="+repr(user_key)
+        print sql
+        resList = mysqlcon.dbh.ExecQuery(sql)
+        print resList
+        if len(resList) > 0:
+            self.request.send("[*] Login successfully\n")
+            return username
+        else:
+            self.request.send("[!] Username or password is wrong\n")
+            return False
+
+    def user_upload(self):
+        if self.session == False:
+            self.request.send("[!] Not login")
+            return 0
+        self.request.send("[*] Welcom to upload\n[*] The file to upload:")
+        filename = self.request.recv(4096)
+        if filename:
+            self.request.send("[*] File get ready")
+        f = open(filename, 'wb')
+        while True:
+            data = self.request.recv(4096)
+            if data == 'EOF':
+                print "[+] Recv file success!"
+                break
+            f.write(data)
+        f.close()
+        sql = "select user_key from login where username="+repr(self.session)
+        user_key = mysqlcon.dbh.ExecQuery(sql)[0]
+
+    def user_download():
+        pass
+
+    def user_share():
+        pass
+
+    def user_exit():
+        pass
+
+if __name__ == '__main__':
+    host = 'localhost'
+    port = 5555
+    try:
+        s = SocketServer.ThreadingTCPServer((host,port), MyTcpServer)
+        s.serve_forever()
+    except:
+        print "[!] Errors to exit"
+        sys.exit(0)
