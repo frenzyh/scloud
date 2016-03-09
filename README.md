@@ -1,6 +1,6 @@
 # scloud
 Cloud disk based on  cryptography   
-background:  
+##background:  
 Linux Python 2.7.9 MySQL > 5  
 pip install MySQLdb  
 ***********************************************
@@ -38,7 +38,7 @@ note: authorise manually !!!
 模拟云盘认证部分参考了新浪微盘认证过程及代码。  
 在Windows 8.1 与 liunx 上测试通过  
 
-使用说明
+##使用说明
 
 适用于Python 2.7.9 MySQL大于5 环境  
 首先简易安装MySQLdb  
@@ -68,7 +68,7 @@ choose the option to use :)
 python server_new.py   
 
 #已知问题：
-1、手动认证
-2、功能不够全面，私密分享、分享等
-3、数据库需要自我搭建
-4、对于Windows用户不够友好
+1、手动认证  
+2、功能不够全面，私密分享、分享等  
+3、数据库需要自我搭建  
+4、对于Windows用户不够友好  
