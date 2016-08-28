@@ -16,7 +16,7 @@ class enc_and_dec(object):
         Data_Path = Data_Path.encode('string-escape')
         local_file = open(Data_Path, 'r')
         local_data = local_file.read()
-        return local_data    
+        return local_data     
     
 
     def get_sha256(self, Data_to_enc):
