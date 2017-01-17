@@ -2,7 +2,7 @@
 # encoding=utf-8
 
 from enc_and_dec import enc_tools
-from cloud import vdisk
+from cloud import vdisk   
 
 from socket import *
 import getpass
