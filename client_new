@@ -6,7 +6,7 @@ from cloud import vdisk
 
 from socket import *
 import getpass
-import os
+import os   
 import optparse
 import sys
 
