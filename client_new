@@ -18,7 +18,7 @@ class Scloud_client(object):
         self.s = socket(AF_INET, SOCK_STREAM)
         self.s.connect((self.ip, self.port))
 
-    def help(self):
+    def help(self):  
         print "[*] The options you can use are('back' can be used to swicth option):"
         print "[*] help, exit, register, login, upload, download, share"
 
